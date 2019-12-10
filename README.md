@@ -110,6 +110,7 @@ Um den Zugriff zu testen verwende
 curl -f [IP]:80
 curl -f [IP]:22
 ```
+
 ## Webserver einrichten 
 Um einen Webserver direkt mittels eines Vagrant Files zu installieren und konfigurieren müssen folgende Lines der Shell Config im Vagrant File hinzugefügt werden:
 ```
@@ -155,4 +156,138 @@ Dies wird ebenfalls im in der Shell Section dees Vagrant Files configuriert.
 # NOTE: This will enable public access to the opened port
   config.vm.network "private_network", ip: "172.28.128.12"
   config.vm.network "forwarded_port", guest: 80, host: 9090
+```
+
+## Docker
+Installiere Docker auf der Offiziellen Webseite und führe das Programm als Administrator aus.
+
+Erstelle ein Dockerfile womit dann ein Image geladen werden kann. Dieses könnte folgendes beinhalten:
+```
+FROM php:7.0-apache
+COPY src /var/www/html
+EXPOSE 80
+```
+Dies ist ein einfach Apache image mit php. Dafür wird aber noch ein PHP file benötigt. Wie  zum Beispiel ein einfach Hello World:
+```
+<?php
+
+echo "Hello, World";
+```
+
+Um diese dann zu laden, muss in Powershell als Admin zuerst in den richtigen Ordner navigiert werden, wo das Dockerfile abgespeichert ist.
+Danach folgenden Befehlt ausführen.
+```
+docker build -t [Name des Images] .
+```
+Jetzt kann der Container gestartet werden mit
+```
+docker run -p [port][vergebener name des Images]
+#Zum beispiel
+docker run -p 80:80 hello-world .
+```
+Jetzt kann in unserem Fall localhost aufgerufen werden.
+Bei einer Änderung des PHP files, wird die Webseite nicht aktualisiert.
+Dafür müsste man den Container jedes mal wieder neu starten. Um dies einfach zu gestallten kann man ein Directory für Docker mounten. Mit folgendem command:
+```
+docker run -p 80:80 -v [directory pfad]:[pfad auf dem container] hello-world
+#In unserem Beispiel
+docker run -p 80:80 -v 'C:\Users\ELH9\OneDrive - HAWORTH INC\Schule\Modul 300\Github-local-Repository\Modul-300\Docker\src\':/var/www/html/ hello-world
+```
+Jetzt kann das PHP file im src Ordner abgeändert werden und Docker aktualisiertdoc die Webseite automatisch.
+![Falls es nicht funktionieren sollte, wird es daran liegen, dass Docker keine zugriff auf den Pfad hat. Dies kann angepasst werden, indem man in den Settings Docker zugriff auf den Datenträger gibt.](https://github.com/Lukas-Hunziker/Modul-300/blob/master/Docker_Shared-Drives_Error.png)
+
+Falls es dann immer noch nicht funktionieren sollte wird es daran liegen, dass die Firewall den Zugriff blockt. Also in meinem Beispiel ist es unmöglich dies zu ändern, da es von der Domäne verwaltet wird und somit immer alles von Docker abgeblockt wird.
+
+## Mehrere Docker Services zusammen benutzen
+
+Um mehrere Services miteinander zu benutzen kann kein ein Docker-compose file erstellt werden. So muss nicht jeder Service mühsam einzeln mit 
+```
+docker run -p [port][vergebener name des Images]
+```
+gestartet werden.
+
+In unserem Fall sieht das docker-compose.yml file folgendermassen aus:
+```
+version: '3'
+
+services:
+    product-service:
+        build: ./product
+        volumes:
+         - ./prodcut:/usr/src/app
+        ports:
+          - 5001:80
+    
+    website:
+      image: php:apache
+      volumes:
+        - ./website:/var/www/html
+      ports:
+        - 5000:80
+      depends_on:
+        - product-service
+```
+
+Wenn dieses File erstellt ist, können die definierten Services ganz einfach mit
+```
+docker-compose up
+```
+gestartet werden.
+
+Bei dem website service wurde sogar auf das Dockerfile verzichtet, indem einfach ein image geladen wird und dann der Ordner website dem Service geshared wird.
+
+Beim product service wurde ein Dockerfile erstellt wasa folgendermassen aussieht:
+```
+FROM php:7.0-apache
+COPY src/ /var/www/html
+EXPOSE 80
+``` 
+Um die Products aufzulisten wurde ein Python File erstellt, was folgenden Code beinhaltet:
+```
+# Product service
+
+from flask import Flask
+from flask_restful import Resource, Api
+
+app = Flask(__name__)
+api = Api(app)
+
+class Product(Resource):
+	def get(self):
+		return{
+				'products': ['Bannane',
+							'Schokolade',
+							'Donut']
+			  }
+
+api.add_resource(Product, '/')
+
+if __name__ == '__main__':
+	app.run(host='0.0.0.0', port=80, debug=True)
+```
+Damit dieses Python file vom Docker ausgeführt wird, benötigt man noch ein requirements.txt file was folgendermassen aussieht:
+```
+Flask==0.12
+flask-restful==0.3.5
+```
+Für die Webseite wurde ein einfach PHP file erstellt, was folgendermassen aussieht:
+```
+<html>
+	<head>
+		<title>My Webshop</title>
+	</head>
+	
+	<body>
+		<h1>Welcome to my Webshop</h1>
+		<ul>
+			<?php
+				$json = file_get_contents('http://product-service');
+				$obj = json_decode($json);
+				
+				$products = $obj->products;
+				foreach ($products as $product) {
+					echo "<li>$product</li>";
+				}				
+	</body>
+</html>
 ```
