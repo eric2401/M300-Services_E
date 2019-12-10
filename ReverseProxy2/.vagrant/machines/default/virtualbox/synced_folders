@@ -1,0 +1,1 @@
+{"virtualbox":{"/var/www/html":{"guestpath":"/var/www/html","hostpath":"C:/Schule_neu/TBZ/Module/300_BIST/Repository/M300-Services_E/ReverseProxy2/src","disabled":false,"__vagrantfile":true},"/vagrant":{"guestpath":"/vagrant","hostpath":"C:/Schule_neu/TBZ/Module/300_BIST/Repository/M300-Services_E/ReverseProxy2","disabled":false,"__vagrantfile":true}}}

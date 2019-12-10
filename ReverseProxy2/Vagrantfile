@@ -1,0 +1,32 @@
+Vagrant.configure(2) do |config|
+  # Für einen snyced ordner mit VM Host
+  config.vm.synced_folder "src/", "/var/www/html" 
+
+  # Every Vagrant development environment requires a box. You can search for
+  # boxes at https://vagrantcloud.com/search.
+  config.vm.box = "ubuntu/xenial64"
+
+  # Create a forwarded port mapping which allows access to a specific port
+  # within the machine from a port on the host machine. In the example below,
+  # accessing "localhost:8080" will access port 80 on the guest machine.
+  # NOTE: This will enable public access to the opened port
+  config.vm.network "private_network", ip: "172.28.128.12"
+  config.vm.network "forwarded_port", guest: 80, host: 9090
+  
+  # Shell Code:	
+  config.vm.provision "shell", inline: <<-SHELL
+  # Set Hostname for Identification
+  sudo hostnamectl set-hostname webserver2
+  sudo sed -i s/ubuntu-xenial/webserver2/g /etc/hosts
+  # Apache2 Setup for Reverse Proxy
+  sudo apt-get update
+  sudo apt-get install -y apache2
+  sudo apt-get install -y libxml2-dev
+  sudo a2enmod proxy
+  sudo a2enmod proxy_html
+  sudo a2enmod proxy_http
+  sudo sed -i '$aServerName localhost' /etc/apache2/apache2.conf
+  sudo service apache2 restart
+   
+  SHELL
+end

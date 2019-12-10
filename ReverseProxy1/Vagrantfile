@@ -1,0 +1,51 @@
+Vagrant.configure(2) do |config|
+  # Für einen snyced ordner mit VM Host
+  config.vm.synced_folder "src/", "/var/www/html" 
+
+  # Every Vagrant development environment requires a box. You can search for
+  # boxes at https://vagrantcloud.com/search.
+  config.vm.box = "ubuntu/xenial64"
+
+  # Create a forwarded port mapping which allows access to a specific port
+  # within the machine from a port on the host machine. In the example below,
+  # accessing "localhost:8080" will access port 80 on the guest machine.
+  # NOTE: This will enable public access to the opened port
+  config.vm.network "private_network", ip: "172.28.128.6"
+  config.vm.network "forwarded_port", guest: 80, host: 80
+  # Shell Code:	
+  config.vm.provision "shell", inline: <<-SHELL
+  # Set Hostname for Identification
+  sudo hostnamectl set-hostname webserver1
+  sudo sed -i s/ubuntu-xenial/webserver1/g /etc/hosts
+  # Apache2 Setup for Reverse Proxy
+  sudo apt-get update
+  sudo apt-get install -y apache2
+  sudo apt-get install -y libxml2-dev
+  sudo apt-get install -y build-essential
+  sudo a2enmod proxy
+  sudo a2enmod proxy_http
+  sudo a2enmod proxy_ajp
+  sudo a2enmod rewrite
+  sudo a2enmod deflate
+  sudo a2enmod headers
+  sudo a2enmod proxy_balancer
+  sudo a2enmod proxy_connect
+  sudo a2enmod proxy_html
+  
+  sudo sed -i '$aServerName localhost' /etc/apache2/apache2.conf
+  
+  #sudo cp /var/www/html/001-mysite.conf /etc/apache2/sites-available/
+  #sudo a2ensite 001-mysite.conf
+  sudo service apache2 restart
+  
+  #UFW Firewall
+  sudo apt-get install ufw
+  sudo ufw allow 80/tcp
+  sudo ufw allow 9090/tcp
+  
+  #If you know specific Ip do: sudo ufw allow from 10.230.42.124 to any port 22
+  sudo ufw allow 22
+  sudo ufw enable
+  
+  SHELL
+end
