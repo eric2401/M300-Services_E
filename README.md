@@ -110,3 +110,49 @@ Um den Zugriff zu testen verwende
 curl -f [IP]:80
 curl -f [IP]:22
 ```
+## Webserver einrichten 
+Um einen Webserver direkt mittels eines Vagrant Files zu installieren und konfigurieren müssen folgende Lines der Shell Config im Vagrant File hinzugefügt werden:
+```
+# Shell Code:	
+  config.vm.provision "shell", inline: <<-SHELL
+  # Set Hostname for Identification
+  sudo hostnamectl set-hostname webserver1
+  sudo sed -i s/ubuntu-xenial/webserver1/g /etc/hosts
+  # Apache2 Setup 
+  sudo apt-get update
+  sudo apt-get install -y apache2
+```
+Um die Installation abzuschliessen empfiehlt sich den Apache Service neuzustarten
+```
+ #sudo a2ensite 001-mysite.conf
+  sudo service apache2 restart
+```
+Der Webserver Pfad kann lokal mit folgender Einstellung lokal synchronisiert werden
+```
+# Für einen snyced ordner mit VM Host
+  config.vm.synced_folder "src/", "/var/www/html" 
+```
+## Proxy einrichten 
+Um einen Proxy Server direkt mir dem Vagrant File zu installieren müssen folgende Befehle in der Vagrant File Shell Config hinzugefügt werden
+```
+# Shell Code:
+  config.vm.provision "shell", inline: <<-SHELL
+  # Apache2 Setup for Reverse Proxy
+  sudo a2enmod proxy
+  sudo a2enmod proxy_http
+  sudo a2enmod proxy_ajp
+  sudo a2enmod rewrite
+  sudo a2enmod deflate
+  sudo a2enmod headers
+  sudo a2enmod proxy_balancer
+  sudo a2enmod proxy_connect
+  sudo a2enmod proxy_html
+  sudo sed -i '$aServerName localhost' /etc/apache2/apache2.conf
+```
+## Statische IP-Adresse & Port konfigurieren
+Dies wird ebenfalls im in der Shell Section dees Vagrant Files configuriert.
+```
+# NOTE: This will enable public access to the opened port
+  config.vm.network "private_network", ip: "172.28.128.12"
+  config.vm.network "forwarded_port", guest: 80, host: 9090
+```
