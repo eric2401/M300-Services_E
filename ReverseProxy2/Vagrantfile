@@ -26,6 +26,9 @@ Vagrant.configure(2) do |config|
   sudo a2enmod proxy_html
   sudo a2enmod proxy_http
   sudo sed -i '$aServerName localhost' /etc/apache2/apache2.conf
+  
+  sudo cp /var/www/html/001-mysite.conf /etc/apache2/sites-available/
+  sudo a2ensite 001-mysite.conf
   sudo service apache2 restart
    
   SHELL
